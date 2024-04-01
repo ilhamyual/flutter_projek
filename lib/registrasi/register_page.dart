@@ -1,11 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_projek/login/login_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class register_page extends StatefulWidget {
   const register_page({Key? key}) : super(key: key);
 
   @override
   _register_pageState createState() => _register_pageState();
+}
+
+class UserData {
+  final String nik;
+  final String nama;
+  final String jekel;
+  final String kecamatan;
+  final String desa;
+  final String kota;
+  final String tanggalLahir;
+  final String password;
+  final String role;
+
+  UserData({
+    required this.nik,
+    required this.nama,
+    required this.jekel,
+    required this.kecamatan,
+    required this.desa,
+    required this.tanggalLahir,
+    required this.password,
+    this.role = 'Pemohon',
+    this.kota = 'Jember', // Default role
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'nik': nik,
+      'nama': nama,
+      'jekel': jekel,
+      'kecamatan': kecamatan,
+      'desa': desa,
+      'kota': kota,
+      'tgl_lahir': tanggalLahir,
+      'password': password,
+      'role': role,
+    };
+  }
 }
 
 class _register_pageState extends State<register_page> {
@@ -15,98 +56,115 @@ class _register_pageState extends State<register_page> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmpasswordController = TextEditingController();
-  String genderValue = 'Laki-laki';
+  TextEditingController dateController = TextEditingController();
+  String genderValue = 'Laki-Laki';
   DateTime? selectedDate;
   TextEditingController addressController = TextEditingController();
   bool visibility = true;
   final _formKey = GlobalKey<FormState>();
 
-
   late Future<List<String>> kecamatanListFuture;
   String? selectedKecamatan;
-  
+
   late Future<List<String>> desaListFuture;
   String? selectedDesa;
-
+  String? selectedKecamatanId;
 
 //nyoba nyoba doang ini
   Future<List<String>> fetchKecamatanFromDatabase() async {
-  // Fungsi untuk mengambil data kecamatan dari database
-  // Implementasikan sesuai dengan logika pengambilan data dari database Anda
-  // Contoh: dapat menggunakan package http untuk melakukan request ke API
-  // Misalnya:
-  // final response = await http.get('https://example.com/kecamatan');
-  // final List<String> kecamatanList = parseKecamatanFromResponse(response.body);
-  // return kecamatanList;
+    final response =
+        await http.get(Uri.parse('http://localhost:8000/api/kecamatan'));
+    if (response.statusCode == 200) {
+      List<String> kecamatanList = [];
+      final data = json.decode(response.body);
+      for (var kecamatan in data) {
+        kecamatanList.add(kecamatan['nama']);
+      }
+      return kecamatanList;
+    } else {
+      throw Exception('Failed to load kecamatan data');
+    }
+  }
 
-  // Contoh sederhana:
-  return Future.delayed(Duration(seconds: 1), () {
-    return ['Kecamatan A', 'Kecamatan B', 'Kecamatan C'];
-  });
+  void _fetchDesaByKecamatanId(String kecamatanId) async {
+    try {
+      final response = await http
+          .get(Uri.parse('http://localhost:8000/api/desa/$kecamatanId'));
+      if (response.statusCode == 200) {
+        List<String> desaList = (json.decode(response.body) as List)
+            .map((item) => item['nama'] as String)
+            .toList();
+        setState(() {
+          selectedDesa = null;
+          desaListFuture = Future.value(desaList);
+        });
+      } else {
+        throw Exception('Failed to load desa data');
+      }
+    } catch (error) {
+      print('Error fetching desa data: $error');
+      setState(() {
+        desaListFuture = Future.error('Failed to load desa data');
+      });
+    }
+  }
+
+  Future<List<String>> fetchDesaFromDatabase(String kecamatanId) async {
+    final response = await http
+        .get(Uri.parse('http://localhost:8000/api/desa/$kecamatanId'));
+    if (response.statusCode == 200) {
+      List<String> desaList = [];
+      final data = json.decode(response.body);
+      for (var desa in data) {
+        desaList.add(desa['nama']);
+      }
+      return desaList;
+    } else {
+      throw Exception('Failed to load desa data');
+    }
+  }
+
+  Future<String> fetchKecamatanId(String kecamatanName) async {
+    final response =
+        await http.get(Uri.parse('http://localhost:8000/api/kecamatan'));
+    if (response.statusCode == 200) {
+      final List<dynamic> kecamatans = json.decode(response.body);
+      final kecamatan = kecamatans
+          .firstWhere((kecamatan) => kecamatan['nama'] == kecamatanName);
+      return kecamatan['id'].toString();
+    } else {
+      throw Exception('Failed to load kecamatan data');
+    }
   }
 
   @override
   void initState() {
     super.initState();
     kecamatanListFuture = fetchKecamatanFromDatabase();
-  // Misalkan Kecamatan awal adalah yang pertama dari list Kecamatan
-    desaListFuture = fetchDesaFromDatabase('Kecamatan A');
-  }
-
-  Future<List<String>> fetchDesaFromDatabase(String kecamatan) async {
-  // Fungsi untuk mengambil data desa dari database berdasarkan kecamatan
-  // Implementasikan sesuai dengan logika pengambilan data dari database Anda
-  // Contoh: dapat menggunakan package http untuk melakukan request ke API
-  // Misalnya:
-  // final response = await http.get('https://example.com/desa?kecamatan=$kecamatan');
-  // final List<String> desaList = parseDesaFromResponse(response.body);
-  // return desaList;
-
-  // Contoh sederhana:
-  return Future.delayed(Duration(seconds: 1), () {
-    if (kecamatan == 'Kecamatan A') {
-      return ['Desa 1A', 'Desa 2A', 'Desa 3A'];
-    } else if (kecamatan == 'Kecamatan B') {
-      return ['Desa 1B', 'Desa 2B', 'Desa 3B'];
-    } else if (kecamatan == 'Kecamatan C') {
-      return ['Desa 1C', 'Desa 2C', 'Desa 3C'];
-    } else {
-      return []; // Kembalikan list kosong jika kecamatan tidak valid atau tidak ditemukan
-    }
-  });
-}
-
-//ketas nyoba nyoba
-
-  String getMonthName(int month) {
-    switch (month) {
-      case 1:
-        return 'Januari';
-      case 2:
-        return 'Februari';
-      case 3:
-        return 'Maret';
-      case 4:
-        return 'April';
-      case 5:
-        return 'Mei';
-      case 6:
-        return 'Juni';
-      case 7:
-        return 'Juli';
-      case 8:
-        return 'Agustus';
-      case 9:
-        return 'September';
-      case 10:
-        return 'Oktober';
-      case 11:
-        return 'November';
-      case 12:
-        return 'Desember';
-      default:
-        return '';
-    }
+    kecamatanListFuture.then((kecamatanList) {
+      setState(() {
+        selectedKecamatan = kecamatanList.first;
+      });
+      fetchKecamatanId(selectedKecamatan!).then((kecamatanId) {
+        setState(() {
+          selectedKecamatanId = kecamatanId;
+        });
+        fetchDesaFromDatabase(selectedKecamatanId ?? '').then((desaList) {
+          setState(() {
+            desaListFuture = Future.value(desaList);
+          });
+        }).catchError((error) {
+          print('Error fetching desa data: $error');
+          setState(() {
+            desaListFuture = Future.error('Failed to load desa data');
+          });
+        });
+      }).catchError((error) {
+        print('Error fetching kecamatan id: $error');
+      });
+    }).catchError((error) {
+      print('Error fetching kecamatan data: $error');
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -119,6 +177,10 @@ class _register_pageState extends State<register_page> {
     if (pickedDate != null) {
       setState(() {
         selectedDate = pickedDate;
+        // Format tanggal yang dipilih tanpa informasi jam
+        String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
+        // Assign formattedDate ke TextFormField
+        dateController.text = formattedDate;
       });
     }
   }
@@ -142,6 +204,11 @@ class _register_pageState extends State<register_page> {
               child: const Text('OK'),
               onPressed: () {
                 Navigator.pop(context);
+                Navigator.pushReplacement(
+                  // Ganti halaman dan hapus halaman sebelumnya dari tumpukan
+                  context,
+                  MaterialPageRoute(builder: (context) => login_page()),
+                );
               },
             ),
           ],
@@ -150,13 +217,66 @@ class _register_pageState extends State<register_page> {
     );
   }
 
-  void _saveRegistrationData() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => login_page()),
-    );
+  void _saveRegistrationData() async {
+    if (_formKey.currentState!.validate()) {
+      String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
 
-    _showRegistrationSuccessDialog(context);
+      UserData userData = UserData(
+        nik: nikController.text,
+        nama: nameController.text,
+        jekel: genderValue,
+        kecamatan: selectedKecamatan ?? '',
+        desa: selectedDesa ?? '',
+        kota: 'Jember', // Ganti dengan nama kota yang sesuai
+        tanggalLahir: formattedDate,
+        password: passwordController.text,
+      );
+
+      // Cetak data pengguna ke terminal
+      print('Data Registrasi:');
+      print('NIK: ${userData.nik}');
+      print('Nama: ${userData.nama}');
+      print('Gender: ${userData.jekel}');
+      print('Kecamatan: ${userData.kecamatan}');
+      print('Desa: ${userData.desa}');
+      print('Kota: ${userData.kota}');
+      print('Tanggal Lahir: ${userData.tanggalLahir}');
+      print('Password: ${userData.password}');
+      print('Role: ${userData.role}');
+
+      final response = await http.post(
+        Uri.parse(
+            'http://localhost:8000/api/register_flutter'), // Ganti dengan URL endpoint API Anda
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(userData.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        // Registrasi berhasil, tampilkan dialog sukses
+        _showRegistrationSuccessDialog(context);
+      } else {
+        // Registrasi gagal, tampilkan pesan kesalahan
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Registrasi Gagal'),
+              content: Text('Regstrasi Gagal'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    }
   }
 
   @override
@@ -346,7 +466,6 @@ class _register_pageState extends State<register_page> {
                   },
                 ),
               ),
-
               Container(
                 alignment: Alignment.center,
                 padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
@@ -357,7 +476,7 @@ class _register_pageState extends State<register_page> {
                       genderValue = newValue!;
                     });
                   },
-                  items: <String>['Laki-laki', 'Perempuan']
+                  items: <String>['Laki-Laki', 'Perempuan']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -369,13 +488,12 @@ class _register_pageState extends State<register_page> {
                       borderRadius: BorderRadius.circular(25.0),
                     ),
                     labelText: "Gender",
-                    prefixIcon: genderValue == 'Laki-laki'
+                    prefixIcon: genderValue == 'Laki-Laki'
                         ? Icon(Icons.male_rounded)
                         : Icon(Icons.female_rounded),
                   ),
                 ),
               ),
-
               GestureDetector(
                 onTap: () => _selectDate(context),
                 child: AbsorbPointer(
@@ -383,17 +501,14 @@ class _register_pageState extends State<register_page> {
                     alignment: Alignment.center,
                     padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
                     child: TextFormField(
-                      controller: TextEditingController(
-                        text: selectedDate != null
-                            ? "${selectedDate!.day} ${getMonthName(selectedDate!.month)} ${selectedDate!.year}"
-                            : '',
-                      ),
+                      controller:
+                          dateController, // Menggunakan TextEditingController
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25.0),
                         ),
                         labelText: "Tanggal Lahir",
-                        prefixIcon: Icon(Icons.calendar_month_rounded),
+                        prefixIcon: Icon(Icons.calendar_today),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -405,7 +520,6 @@ class _register_pageState extends State<register_page> {
                   ),
                 ),
               ),
-
               Container(
                 alignment: Alignment.center,
                 padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
@@ -413,7 +527,7 @@ class _register_pageState extends State<register_page> {
                   future: kecamatanListFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator(); // Menampilkan loading indicator selama data diambil dari database
+                      return CircularProgressIndicator();
                     } else if (snapshot.hasError) {
                       return Text('Error: ${snapshot.error}');
                     } else {
@@ -422,9 +536,21 @@ class _register_pageState extends State<register_page> {
                         onChanged: (String? newValue) {
                           setState(() {
                             selectedKecamatan = newValue!;
+                            _fetchDesaByKecamatanId(selectedKecamatanId!);
+                            fetchKecamatanId(selectedKecamatan!)
+                                .then((kecamatanId) {
+                              setState(() {
+                                selectedKecamatanId = kecamatanId;
+                              });
+                              // Panggil fungsi untuk memperbarui daftar desa
+                              _fetchDesaByKecamatanId(selectedKecamatanId!);
+                            }).catchError((error) {
+                              print('Error fetching kecamatan id: $error');
+                            });
                           });
                         },
-                        items: snapshot.data!.map<DropdownMenuItem<String>>((String value) {
+                        items: snapshot.data!
+                            .map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(value),
@@ -442,15 +568,15 @@ class _register_pageState extends State<register_page> {
                   },
                 ),
               ),
-
               Container(
                 alignment: Alignment.center,
                 padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
                 child: FutureBuilder<List<String>>(
-                  future: desaListFuture,
+                  future: fetchDesaFromDatabase(selectedKecamatanId ??
+                      ''), // Gunakan id kecamatan yang dipilih
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator(); // Menampilkan loading indicator selama data diambil dari database
+                      return CircularProgressIndicator();
                     } else if (snapshot.hasError) {
                       return Text('Error: ${snapshot.error}');
                     } else {
@@ -461,7 +587,8 @@ class _register_pageState extends State<register_page> {
                             selectedDesa = newValue!;
                           });
                         },
-                        items: snapshot.data!.map<DropdownMenuItem<String>>((String value) {
+                        items: snapshot.data!
+                            .map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(value),
@@ -479,8 +606,6 @@ class _register_pageState extends State<register_page> {
                   },
                 ),
               ),
-
-
               Container(
                 alignment: Alignment.center,
                 padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
@@ -513,7 +638,10 @@ class _register_pageState extends State<register_page> {
                     Text("Sudah punya akun? "),
                     GestureDetector(
                       onTap: () {
-                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => login_page()),
+                        );
                       },
                       child: Text(
                         'Login disini',
