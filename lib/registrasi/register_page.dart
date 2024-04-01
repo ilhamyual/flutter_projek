@@ -3,53 +3,16 @@ import 'package:flutter_projek/login/login_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:flutter_projek/user_data.dart';
 
-class register_page extends StatefulWidget {
-  const register_page({Key? key}) : super(key: key);
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
-  _register_pageState createState() => _register_pageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
-class UserData {
-  final String nik;
-  final String nama;
-  final String jekel;
-  final String kecamatan;
-  final String desa;
-  final String kota;
-  final String tanggalLahir;
-  final String password;
-  final String role;
-
-  UserData({
-    required this.nik,
-    required this.nama,
-    required this.jekel,
-    required this.kecamatan,
-    required this.desa,
-    required this.tanggalLahir,
-    required this.password,
-    this.role = 'Pemohon',
-    this.kota = 'Jember', // Default role
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'nik': nik,
-      'nama': nama,
-      'jekel': jekel,
-      'kecamatan': kecamatan,
-      'desa': desa,
-      'kota': kota,
-      'tgl_lahir': tanggalLahir,
-      'password': password,
-      'role': role,
-    };
-  }
-}
-
-class _register_pageState extends State<register_page> {
+class _RegisterPageState extends State<RegisterPage> {
   TextEditingController nikController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   TextEditingController tlpController = TextEditingController();

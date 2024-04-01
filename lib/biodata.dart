@@ -1,134 +1,123 @@
 import 'package:flutter/material.dart';
-import 'api_service.dart'; // Pastikan pathnya sesuai
+import 'package:flutter_projek/status_page.dart';
+import 'package:flutter_projek/profil_page.dart';
 
 class Biodata {
-  final String nik;
   final String nama;
-  final String kecamatan;
-  final String desa;
-  final String tglLahir; // Format YYYY-MM-DD
-  final String jekel;
-  final String kota;
 
   Biodata({
-    required this.nik,
     required this.nama,
-    required this.kecamatan,
-    required this.desa,
-    required this.tglLahir,
-    required this.jekel,
-    required this.kota,
   });
 
   factory Biodata.fromJson(Map<String, dynamic> json) {
     return Biodata(
-      nik: json['nik'],
       nama: json['nama'],
-      kecamatan: json['kecamatan'],
-      desa: json['desa'],
-      tglLahir: json['tgl_lahir'],
-      jekel: json['jekel'],
-      kota: json['kota'],
     );
   }
 }
 
-class BiodataCard extends StatelessWidget {
-  final Biodata biodata; // Menggunakan tipe Biodata
-
-  BiodataCard({required this.biodata});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(Icons.person),
-        title: Text(biodata.nama),
-        subtitle: Text("NIK: ${biodata.nik}\n"
-            "Desa: ${biodata.desa}, Kecamatan: ${biodata.kecamatan}\n"
-            "Kota: ${biodata.kota}, Tanggal Lahir: ${biodata.tglLahir}\n"
-            "Jenis Kelamin: ${biodata.jekel}"),
-      ),
-    );
-  }
-}
-
-class YourWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Your Widget'),
-      ),
-      body: FutureBuilder<List<Biodata>>(
-        future:
-            fetchBiodata(), // Ganti dengan fungsi untuk mengambil data biodata dari server
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                return BiodataCard(biodata: snapshot.data![index]);
-              },
-            );
-          } else if (snapshot.hasError) {
-            return Center(child: Text("${snapshot.error}"));
-          }
-          return Center(child: CircularProgressIndicator());
-        },
-      ),
-    );
-  }
-}
-
-class BiodataPage extends StatelessWidget {
+class BiodataPage extends StatefulWidget {
   final List<Biodata> biodata;
 
   BiodataPage({required this.biodata});
 
   @override
+  _BiodataPageState createState() => _BiodataPageState();
+}
+
+class _BiodataPageState extends State<BiodataPage> {
+  int _selectedIndex = 0;
+
+  Widget _getPage(int index) {
+    switch (index) {
+      case 1:
+        return StatusPage(biodata: widget.biodata);
+      case 2:
+        return ProfilPage(biodata: widget.biodata);
+      default:
+        return _buildBiodataList();
+    }
+  }
+
+  Widget _buildBiodataList() {
+    return ListView.builder(
+      itemCount: widget.biodata.length,
+      itemBuilder: (context, index) {
+        return Card(
+          elevation: 4,
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.biodata[index].nama,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "Nama: ${widget.biodata[index].nama}\n",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Biodata Page'),
+        title: Text('Dashboard Page'),
+         automaticallyImplyLeading: false,
       ),
-      body: ListView.builder(
-        itemCount: biodata.length,
-        itemBuilder: (context, index) {
-          return Card(
-            elevation: 4, // Memberikan efek elevasi pada card
-            margin: EdgeInsets.symmetric(
-                vertical: 8, horizontal: 16), // Mengatur jarak antar card
-            shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(12), // Mengatur border radius card
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    biodata[index].nama,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "NIK: ${biodata[index].nik}\n"
-                    "Desa: ${biodata[index].desa}\n"
-                    "Kecamatan: ${biodata[index].kecamatan}\n"
-                    "Kota: ${biodata[index].kota}\n"
-                    "Tanggal Lahir: ${biodata[index].tglLahir}\n"
-                    "Jenis Kelamin: ${biodata[index].jekel}",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          );
+      body: _getPage(_selectedIndex),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insert_chart),
+            label: 'Status',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.greenAccent,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+            if (index == 1) { // Jika tombol "Status" ditekan
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StatusPage(biodata: widget.biodata),
+                ),
+              );
+            } else if (index == 2) { // Jika tombol "Profil" ditekan
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfilPage(biodata: widget.biodata),
+                ),
+              );
+            }
+          });
         },
       ),
     );

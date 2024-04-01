@@ -149,7 +149,7 @@ class _login_pageState extends State<login_page> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => register_page()),
+                            builder: (context) => RegisterPage()),
                       );
                     },
                     child: Text(
