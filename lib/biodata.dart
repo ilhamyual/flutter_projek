@@ -27,61 +27,36 @@ class BiodataPage extends StatefulWidget {
 
 class _BiodataPageState extends State<BiodataPage> {
   int _selectedIndex = 0;
+  late PageController _pageController;
 
-  Widget _getPage(int index) {
-    switch (index) {
-      case 1:
-        return StatusPage(biodata: widget.biodata);
-      case 2:
-        return ProfilPage(biodata: widget.biodata);
-      default:
-        return _buildBiodataList();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
   }
 
-  Widget _buildBiodataList() {
-    return ListView.builder(
-      itemCount: widget.biodata.length,
-      itemBuilder: (context, index) {
-        return Card(
-          elevation: 4,
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.biodata[index].nama,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  "Nama: ${widget.biodata[index].nama}\n",
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Page'),
-         automaticallyImplyLeading: false,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: [
+          _buildBiodataList(),
+          StatusPage(biodata: widget.biodata),
+          ProfilPage(biodata: widget.biodata),
+        ],
       ),
-      body: _getPage(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -102,24 +77,62 @@ class _BiodataPageState extends State<BiodataPage> {
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
-            if (index == 1) { // Jika tombol "Status" ditekan
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StatusPage(biodata: widget.biodata),
-                ),
-              );
-            } else if (index == 2) { // Jika tombol "Profil" ditekan
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProfilPage(biodata: widget.biodata),
-                ),
-              );
-            }
+            _pageController.animateToPage(
+              index,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.ease,
+            );
           });
         },
       ),
+    );
+  }
+
+  Widget _buildBiodataList() {
+    return CustomScrollView(
+      slivers: <Widget>[
+        SliverAppBar(
+          title: Text('Dashboard Page'),
+          automaticallyImplyLeading: false,
+          floating: true,
+          pinned: true,
+          snap: false,
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              return Card(
+                elevation: 4,
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.biodata[index].nama,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Nama: ${widget.biodata[index].nama}\n",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            childCount: widget.biodata.length,
+          ),
+        ),
+      ],
     );
   }
 }
